@@ -6,7 +6,6 @@ services:
     restart: unless-stopped
     environment:
       MYSQL_ROOT_PASSWORD: rootpass
-      MYSQL_DATABASE: loganalyzer
       MYSQL_USER: user
       MYSQL_PASSWORD: syslogpass
       TZ: Europe/Paris
@@ -14,6 +13,8 @@ services:
       - db_data:/var/lib/mysql
       # création du schéma SystemEvents au 1er démarrage
       - ./db/init_syslog.sql:/docker-entrypoint-initdb.d/init_syslog.sql:ro
+      - ./db/init_loganalyzer.sql:/docker-entrypoint-initdb.d/init_loganalyzer.sql:ro
+      - ./db/db_dump.sql:/docker-entrypoint-initdb.d/init_dump.sql:ro
 
   rsyslog:
     build: ./rsyslog
@@ -27,7 +28,7 @@ services:
       - ./rsyslog/rsyslog.conf:/etc/rsyslog.conf:ro
 
   loganalyzer:
-    image: vsc55/loganalyzer:latest
+    image: vsc55/loganalyzer:4.1.13
     depends_on: [ db ]
     restart: unless-stopped
     ports:
@@ -35,7 +36,7 @@ services:
     environment:
       TZ: Europe/Paris
     volumes:
-      - ./data:/data
+      - ./loganalyzer/data:/data
       - ./loganalyzer/entrypoint.sh:/entrypoint.sh:ro
     entrypoint: [ "sh", "/entrypoint.sh" ]
     command: start
