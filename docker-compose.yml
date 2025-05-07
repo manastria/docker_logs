@@ -1,0 +1,44 @@
+# docker-compose.yml
+
+services:
+  db:
+    image: mariadb:10.6
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpass
+      MYSQL_DATABASE: loganalyzer
+      MYSQL_USER: user
+      MYSQL_PASSWORD: syslogpass
+      TZ: Europe/Paris
+    volumes:
+      - db_data:/var/lib/mysql
+      # création du schéma SystemEvents au 1er démarrage
+      - ./db/init_syslog.sql:/docker-entrypoint-initdb.d/init_syslog.sql:ro
+
+  rsyslog:
+    build: ./rsyslog
+    depends_on: [ db ]
+    restart: unless-stopped
+    ports:
+      - "514:514/udp"
+    environment:
+      TZ: Europe/Paris
+    volumes:
+      - ./rsyslog/rsyslog.conf:/etc/rsyslog.conf:ro
+
+  loganalyzer:
+    image: vsc55/loganalyzer:latest
+    depends_on: [ db ]
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    environment:
+      TZ: Europe/Paris
+    volumes:
+      - ./data:/data
+      - ./loganalyzer/entrypoint.sh:/entrypoint.sh:ro
+    entrypoint: [ "sh", "/entrypoint.sh" ]
+    command: start
+
+volumes:
+  db_data:
